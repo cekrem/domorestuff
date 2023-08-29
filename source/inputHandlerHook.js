@@ -1,8 +1,9 @@
 import {useState} from 'react';
-import {useInput} from 'ink';
+import {useApp, useInput} from 'ink';
 
 const CMD_PREFIX = '$ ';
 export const useInputHandler = initialCommands => {
+	const {exit} = useApp();
 	const [commands, setCommands] = useState(initialCommands);
 	const [activeCommand, setActiveCommand] = useState(0);
 	const [newCmd, setNewCmd] = useState(null);
@@ -37,26 +38,30 @@ export const useInputHandler = initialCommands => {
 			return;
 		}
 
+		// handle everything else (when not entering a new command)
 		switch (input) {
-			case 'n':
+			case 'n': // new command
 				setNewCmd(CMD_PREFIX);
 				break;
-			case 'd':
+			case 'd': // delete command
 				setCommands(prev => [
 					...prev.slice(0, activeCommand),
 					...prev.slice(activeCommand + 1),
 				]);
 				setActiveCommand(prev => Math.max(prev - 1, 0));
 				break;
-			case 'c':
+			case 'c': // clear all commands
 				setCommands([]);
 				setActiveCommand(0);
 				break;
-			case 'j':
+			case 'j': // scroll down (unless in the middle of typing new command)
 				setActiveCommand(prev => Math.min(commands.length - 1, prev + 1));
 				break;
-			case 'k':
+			case 'k': // scroll up (unless in the middle of typing new command)
 				setActiveCommand(prev => Math.max(0, prev - 1));
+				break;
+			case 'q': // quit app
+				exit();
 				break;
 		}
 	});
