@@ -37,6 +37,7 @@ export const Command = ({cmd, active}) => {
 		ps.stderr.on('data', setOutput);
 
 		return () => {
+			clearInterval(tick);
 			ps.kill();
 		};
 	}, [cmd]);
