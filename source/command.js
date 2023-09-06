@@ -1,27 +1,36 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect} from 'react';
 import {Box, Spacer, Text} from 'ink';
 import {spawn} from 'child_process';
-import {useSelector} from 'react-redux';
+import {useDispatch, useSelector} from 'react-redux';
+import {COLORS, setCommandProp} from './store.js';
 
 export const Command = ({id, active}) => {
-	const {raw, root, args} = useSelector(({root}) => root.commands[id]);
+	const dispatch = useDispatch();
+	const {raw, root, args, status, output, color} = useSelector(
+		({root}) => root.commands[id],
+	);
 
-	const [summary, setSummary] = useState('');
-	const [color, setColor] = useState(COLORS.pending);
-	const [output, setOutput] = useState(null);
+	const [setStatus, setColor, setOutput] = ['status', 'color', 'output'].map(
+		prop => value =>
+			dispatch(
+				setCommandProp({
+					id,
+					key: prop,
+					value,
+				}),
+			),
+	);
 
 	useEffect(() => {
 		const startTime = Date.now();
 		const elapsedTime = () => Date.now() - startTime;
-		const elapsedTimeRounded = () => Math.floor(elapsedTime() / 1000);
+		const tickerTimeRounded = () => Math.floor(elapsedTime() / 500);
 
 		const tick = setInterval(() => {
-			setColor(prev =>
-				prev === COLORS.pending ? COLORS.pendingAlternate : COLORS.pending,
+			setColor(
+				tickerTimeRounded() % 2 ? COLORS.pendingAlternate : COLORS.pending,
 			);
-			setSummary(
-				`running... ${spinner[elapsedTimeRounded() % spinner.length]}`,
-			);
+			setStatus(`running... ${spinner[tickerTimeRounded() % spinner.length]}`);
 		}, 500);
 
 		const ps = spawn(root, args);
@@ -30,13 +39,14 @@ export const Command = ({id, active}) => {
 			const success = exitCodeOrError === 0;
 			clearInterval(tick);
 			setColor(success ? COLORS.success : COLORS.error);
-			setSummary(parseClose(success, elapsedTime()));
+			setStatus(parseClose(success, elapsedTime()));
 		};
+		const handleOutput = buffer => setOutput(buffer.toString().trim());
 
 		ps.on('close', handleResult);
 		ps.on('error', handleResult);
-		ps.stdout.on('data', setOutput);
-		ps.stderr.on('data', setOutput);
+		ps.stdout.on('data', handleOutput);
+		ps.stderr.on('data', handleOutput);
 
 		return () => {
 			clearInterval(tick);
@@ -60,13 +70,13 @@ export const Command = ({id, active}) => {
 
 				<Spacer />
 
-				<Text color={color}>{summary}</Text>
+				<Text color={color}>{status}</Text>
 			</Box>
 
 			{active && output?.length > 1 && (
 				<Box marginTop="1" overflow="hidden">
-					<Text overflow="hidden" wrap="truncate">
-						{output.toString().trim()}
+					<Text overflow="scroll" wrap="truncate">
+						{output}
 					</Text>
 				</Box>
 			)}
@@ -76,10 +86,3 @@ export const Command = ({id, active}) => {
 const parseClose = (success, elapsedTime) =>
 	`${success ? 'finished in' : 'failed after'} ${elapsedTime}ms`;
 const spinner = ['|', '/', '-', '\\'];
-
-const COLORS = {
-	success: 'green',
-	error: 'red',
-	pending: 'black',
-	pendingAlternate: 'blueBright',
-};
