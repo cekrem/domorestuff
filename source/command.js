@@ -3,11 +3,8 @@ import {Box, Spacer, Text} from 'ink';
 import {spawn} from 'child_process';
 import {useSelector} from 'react-redux';
 
-export const Command = ({id}) => {
-	const {raw, root, args} = useSelector(({root}) =>
-		root.commands.find(cmd => cmd.id === id),
-	);
-	const active = useSelector(({root}) => root.activeCommand === id);
+export const Command = ({id, active}) => {
+	const {raw, root, args} = useSelector(({root}) => root.commands[id]);
 
 	const [summary, setSummary] = useState('');
 	const [color, setColor] = useState(COLORS.pending);

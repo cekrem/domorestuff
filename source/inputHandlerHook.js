@@ -5,42 +5,26 @@ import {
 	deleteCommand,
 	inputCharacter,
 	inputDelete,
-	setActive,
+	nextCommand,
+	previousCommand,
 	setInitial,
 	setInputMode,
 } from './store.js';
 
 export const useInputHandler = () => {
 	const dispatch = useDispatch();
-	const {commands, newCommand, activeCommand, inputMode} = useSelector(
-		({root}) => root,
-	);
-
-	const selectCommand = position => {
-		const firstId = commands[position === -1 ? commands.length - 1 : 0]?.id; // TODO: flip? that allows going around
-		if (!activeCommand) {
-			return setActive(firstId);
-		} else {
-			const currentActiveIndex = commands.findIndex(
-				cmd => cmd.id === activeCommand,
-			);
-			return setActive(commands[currentActiveIndex + position]?.id || firstId);
-		}
-	};
-
-	const selectNext = () => selectCommand(1);
-	const selectPrevious = () => selectCommand(-1);
+	const {newCommand, inputMode} = useSelector(({root}) => root);
 
 	const {exit} = useApp();
 
 	useInput((input, key) => {
 		// both modes: handle scroll with arrow keys and ctrl-[n/p]
 		if ((key.ctrl && input === 'n') || key.downArrow) {
-			dispatch(selectNext());
+			dispatch(nextCommand());
 			return;
 		}
 		if ((key.ctrl && input === 'p') || key.upArrow) {
-			dispatch(selectPrevious());
+			dispatch(previousCommand());
 			return;
 		}
 
@@ -71,10 +55,10 @@ export const useInputHandler = () => {
 				dispatch(setInitial([]));
 				break;
 			case 'j': // scroll down (unless in the middle of typing new command)
-				dispatch(selectNext());
+				dispatch(nextCommand());
 				break;
 			case 'k': // scroll up (unless in the middle of typing new command)
-				dispatch(selectPrevious());
+				dispatch(previousCommand());
 				break;
 			case 'q': // quit app
 				exit();

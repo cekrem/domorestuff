@@ -8,7 +8,10 @@ import {useInputHandler} from './inputHandlerHook.js';
 export default ({commands: initialCommands = []}) => {
 	const dispatch = useDispatch();
 	useInputHandler();
-	const {commands, inputMode, newCommand} = useSelector(({root}) => root);
+	const {commands, inputMode, newCommand, activeIndex} = useSelector(
+		({root}) => root,
+	);
+	const commandsList = Object.values(commands);
 
 	useEffect(() => {
 		dispatch(setInitial(initialCommands));
@@ -24,10 +27,14 @@ export default ({commands: initialCommands = []}) => {
 			<Text>
 				Select next/previous command by using arrow keys, j/k or CTRL-n/p.
 			</Text>
-			{commands.map(({id}) => (
-				<Command key={id} id={id} />
+			{commandsList.map(({id}, index) => (
+				<Command
+					key={id}
+					id={id}
+					active={index === activeIndex % commandsList.length}
+				/>
 			))}
-			{!commands.length && <Text>(no commands added)</Text>}
+			{!commandsList.length && <Text>(no commands added)</Text>}
 		</>
 	);
 };
