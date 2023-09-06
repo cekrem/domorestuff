@@ -1,70 +1,84 @@
-import {useState} from 'react';
 import {useApp, useInput} from 'ink';
+import {useDispatch, useSelector} from 'react-redux';
+import {
+	addCommand,
+	deleteCommand,
+	inputCharacter,
+	inputDelete,
+	setActive,
+	setInitial,
+	setInputMode,
+} from './store.js';
 
-const CMD_PREFIX = '$ ';
-export const useInputHandler = initialCommands => {
+export const useInputHandler = () => {
+	const dispatch = useDispatch();
+	const {commands, newCommand, activeCommand, inputMode} = useSelector(
+		({root}) => root,
+	);
+
+	const selectCommand = position => {
+		const firstId = commands[position === -1 ? commands.length - 1 : 0]?.id; // TODO: flip? that allows going around
+		if (!activeCommand) {
+			return setActive(firstId);
+		} else {
+			const currentActiveIndex = commands.findIndex(
+				cmd => cmd.id === activeCommand,
+			);
+			return setActive(commands[currentActiveIndex + position]?.id || firstId);
+		}
+	};
+
+	const selectNext = () => selectCommand(1);
+	const selectPrevious = () => selectCommand(-1);
+
 	const {exit} = useApp();
-	const [commands, setCommands] = useState(initialCommands);
-	const [activeCommand, setActiveCommand] = useState(0);
-	const [newCmd, setNewCmd] = useState(null);
 
 	useInput((input, key) => {
-		// handle scroll
+		// both modes: handle scroll with arrow keys and ctrl-[n/p]
 		if ((key.ctrl && input === 'n') || key.downArrow) {
-			setActiveCommand(prev => Math.min(commands.length - 1, prev + 1));
+			dispatch(selectNext());
 			return;
 		}
 		if ((key.ctrl && input === 'p') || key.upArrow) {
-			setActiveCommand(prev => Math.max(0, prev - 1));
+			dispatch(selectPrevious());
 			return;
 		}
 
-		// handle adding commands
-		if (newCmd?.length) {
+		// input mode: handle adding command
+		if (inputMode) {
 			if (key.backspace || key.delete) {
-				setNewCmd(prev => {
-					const next = prev?.slice(0, -1);
-					return next === CMD_PREFIX ? null : next;
-				});
+				dispatch(inputDelete());
 				return;
 			}
-			if (key.return && newCmd.length > 2) {
-				setCommands(prev => [...prev, newCmd.replace(CMD_PREFIX, '')]);
-				setNewCmd(null);
+			if (key.return && newCommand.length) {
+				dispatch(addCommand(newCommand));
 				return;
 			}
 
-			setNewCmd(prev => prev + input);
+			dispatch(inputCharacter(input));
 			return;
 		}
 
 		// handle everything else (when not entering a new command)
 		switch (input) {
 			case 'n': // new command
-				setNewCmd(CMD_PREFIX);
+				dispatch(setInputMode(true));
 				break;
 			case 'd': // delete command
-				setCommands(prev => [
-					...prev.slice(0, activeCommand),
-					...prev.slice(activeCommand + 1),
-				]);
-				setActiveCommand(prev => Math.max(prev - 1, 0));
+				dispatch(deleteCommand());
 				break;
 			case 'c': // clear all commands
-				setCommands([]);
-				setActiveCommand(0);
+				dispatch(setInitial([]));
 				break;
 			case 'j': // scroll down (unless in the middle of typing new command)
-				setActiveCommand(prev => Math.min(commands.length - 1, prev + 1));
+				dispatch(selectNext());
 				break;
 			case 'k': // scroll up (unless in the middle of typing new command)
-				setActiveCommand(prev => Math.max(0, prev - 1));
+				dispatch(selectPrevious());
 				break;
 			case 'q': // quit app
 				exit();
 				break;
 		}
 	});
-
-	return [commands, activeCommand, newCmd];
 };

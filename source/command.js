@@ -1,8 +1,14 @@
 import React, {useEffect, useState} from 'react';
 import {Box, Spacer, Text} from 'ink';
 import {spawn} from 'child_process';
+import {useSelector} from 'react-redux';
 
-export const Command = ({cmd, active}) => {
+export const Command = ({id}) => {
+	const {raw, root, args} = useSelector(({root}) =>
+		root.commands.find(cmd => cmd.id === id),
+	);
+	const active = useSelector(({root}) => root.activeCommand === id);
+
 	const [summary, setSummary] = useState('');
 	const [color, setColor] = useState(COLORS.pending);
 	const [output, setOutput] = useState(null);
@@ -21,8 +27,7 @@ export const Command = ({cmd, active}) => {
 			);
 		}, 500);
 
-		const [cleanCmd, ...args] = cmd.includes(' ') ? cmd.split(' ') : [cmd];
-		const ps = spawn(cleanCmd, args);
+		const ps = spawn(root, args);
 
 		const handleResult = exitCodeOrError => {
 			const success = exitCodeOrError === 0;
@@ -40,7 +45,7 @@ export const Command = ({cmd, active}) => {
 			clearInterval(tick);
 			ps.kill();
 		};
-	}, [cmd]);
+	}, [id]);
 
 	return (
 		<Box
@@ -52,7 +57,7 @@ export const Command = ({cmd, active}) => {
 		>
 			<Box>
 				<Text bold>
-					{`${active ? '* ' : ''}${cmd}`}
+					{`${active ? '* ' : ''}${raw}`}
 					{!active && output?.length > 1 && <Text dimColor> (...)</Text>}
 				</Text>
 
