@@ -1,6 +1,6 @@
 {
 	"name": "domorestuff",
-	"version": "0.0.6",
+	"version": "0.0.7",
 	"description": "CLI utility to run multiple commands concurrently. No deps besides node.",
 	"license": "ISC",
 	"bin": {
