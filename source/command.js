@@ -1,12 +1,12 @@
-import React, {useEffect} from 'react';
-import {Box, Spacer, Text} from 'ink';
 import {spawn} from 'child_process';
+import {Box, Spacer, Text} from 'ink';
+import React, {useEffect} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import {COLORS, setCommandProp} from './store.js';
 
 export const Command = ({id, active}) => {
 	const dispatch = useDispatch();
-	const {raw, root, args, status, output, color} = useSelector(
+	const {raw, root, args, status, output, error, color} = useSelector(
 		({root}) => root.commands[id],
 	);
 
@@ -24,32 +24,25 @@ export const Command = ({id, active}) => {
 	useEffect(() => {
 		const startTime = Date.now();
 		const elapsedTime = () => Date.now() - startTime;
-		const tickerTimeRounded = () => Math.floor(elapsedTime() / 500);
 
 		const tick = setInterval(() => {
-			setColor(
-				tickerTimeRounded() % 2 ? COLORS.pendingAlternate : COLORS.pending,
+			const tickerTimeRounded = Math.floor(elapsedTime() / 1000);
+			setStatus(
+				`running for ${tickerTimeRounded.toString().padStart(2, '0')}s ${
+					spinner[tickerTimeRounded % spinner.length]
+				}`,
 			);
-			setStatus(`running... ${spinner[tickerTimeRounded() % spinner.length]}`);
-		}, 500);
+		}, 1000);
 
-		const ps = spawn(root, args);
-
-		const handleResult = exitCodeOrError => {
-			const success = exitCodeOrError === 0;
+		const [ps, job] = runCommand(root, args, setOutput);
+		job.then(exitCode => {
 			clearInterval(tick);
-			setColor(success ? COLORS.success : COLORS.error);
-			setStatus(parseClose(success, elapsedTime()));
-		};
-		const handleOutput = buffer => setOutput(buffer.toString().trim());
-
-		ps.on('close', handleResult);
-		ps.on('error', handleResult);
-		ps.stdout.on('data', handleOutput);
-		ps.stderr.on('data', handleOutput);
+			setColor(!exitCode ? COLORS.success : COLORS.error);
+			setStatus(parseClose(!exitCode, elapsedTime()));
+		});
 
 		return () => {
-			clearInterval(tick);
+			clearInterval(id);
 			ps.kill();
 		};
 	}, [id]);
@@ -64,6 +57,7 @@ export const Command = ({id, active}) => {
 		>
 			<Box>
 				<Text bold>
+					{' '}
 					{`${active ? '* ' : ''}${raw}`}
 					{!active && output?.length > 1 && <Text dimColor> (...)</Text>}
 				</Text>
@@ -83,6 +77,39 @@ export const Command = ({id, active}) => {
 		</Box>
 	);
 };
+
 const parseClose = (success, elapsedTime) =>
 	`${success ? 'finished in' : 'failed after'} ${elapsedTime}ms`;
-const spinner = ['|', '/', '-', '\\'];
+const spinner = ['.  ', '.. ', '...', ' ..', '  .', '   '];
+
+const runCommand = (command, args, onOutput) => {
+	const ps = spawn(command, args);
+	const outputChunks = [];
+	const errorChunks = [];
+
+	const parseOutput = () => {
+		const output = outputChunks.toString().trim();
+		const error = errorChunks.toString().trim();
+
+		onOutput(output && error ? `${output}; error: ${error}` : output || error);
+	};
+
+	const handleOutput = buffer => {
+		outputChunks.push(buffer);
+		parseOutput();
+	};
+
+	const handleError = buffer => {
+		errorChunks.push(buffer);
+		parseOutput();
+	};
+
+	const job = new Promise((resolve, _) => {
+		ps.on('close', resolve);
+		ps.on('error', () => {});
+		ps.stdout.on('data', handleOutput);
+		ps.stderr.on('data', handleError);
+	});
+
+	return [ps, job];
+};

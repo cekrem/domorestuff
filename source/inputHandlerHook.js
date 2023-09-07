@@ -1,6 +1,7 @@
 import {useApp, useInput} from 'ink';
 import {useDispatch, useSelector} from 'react-redux';
 import {
+	MODE,
 	addCommand,
 	deleteCommand,
 	inputCharacter,
@@ -29,13 +30,18 @@ export const useInputHandler = () => {
 		}
 
 		// input mode: handle adding command
-		if (inputMode) {
+		if (inputMode === MODE.input) {
 			if (key.backspace || key.delete) {
 				dispatch(inputDelete());
 				return;
 			}
 			if (key.return && newCommand.length) {
 				dispatch(addCommand(newCommand));
+				return;
+			}
+
+			if (key.escape) {
+				dispatch(setInputMode(MODE.normal));
 				return;
 			}
 
@@ -46,7 +52,7 @@ export const useInputHandler = () => {
 		// handle everything else (when not entering a new command)
 		switch (input) {
 			case 'n': // new command
-				dispatch(setInputMode(true));
+				dispatch(setInputMode(MODE.input));
 				break;
 			case 'd': // delete command
 				dispatch(deleteCommand());

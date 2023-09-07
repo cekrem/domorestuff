@@ -1,6 +1,6 @@
 {
 	"name": "domorestuff",
-	"version": "0.0.7",
+	"version": "0.0.8",
 	"description": "CLI utility to run multiple commands concurrently. No deps besides node.",
 	"license": "ISC",
 	"bin": {
@@ -22,7 +22,8 @@
 	},
 	"scripts": {
 		"build": "babel --out-dir=dist source && chmod +x dist/cli.js",
-		"dev": "babel --out-dir=dist --watch source"
+		"dev": "babel --out-dir=dist --watch source",
+		"build-and-start": "npm run build && dist/cli.js"
 	},
 	"files": [
 		"dist"

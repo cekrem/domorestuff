@@ -7,14 +7,20 @@ export const COLORS = {
 	success: 'green',
 	error: 'red',
 	pending: 'black',
-	pendingAlternate: 'blueBright',
 };
+
+const [normal, input, search] = ['normal', 'input', 'search'];
+export const MODE = Object.freeze({
+	normal,
+	input,
+	search,
+});
 
 const initialState = {
 	commands: {},
 	newCommand: '',
 	activeIndex: 0,
-	inputMode: false,
+	inputMode: MODE.normal,
 };
 
 const parseCommand = raw => {
@@ -35,7 +41,7 @@ const rootSlice = createSlice({
 		setInitial: (_, {payload}) => {
 			const commands = payload.map(parseCommand);
 			return {
-				activeIndex: 0,
+				...initialState,
 				commands: commands.reduce(
 					(acc, entry) => ({
 						...acc,
@@ -49,7 +55,7 @@ const rootSlice = createSlice({
 			const command = parseCommand(payload);
 			return {
 				...state,
-				inputMode: false,
+				inputMode: MODE.normal,
 				newCommand: '',
 				commands: {...commands, [command.id]: command},
 			};
@@ -83,7 +89,7 @@ const rootSlice = createSlice({
 		}),
 		inputDelete: ({newCommand, ...state}) => ({
 			...state,
-			inputMode: newCommand.length > 1,
+			inputMode: newCommand.length ? MODE.input : MODE.normal,
 			newCommand: newCommand.slice(0, -1),
 		}),
 		// set any prop (but only for existing commands)

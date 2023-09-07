@@ -17,17 +17,15 @@ const cli = meow(
 	},
 );
 
-// const enterAltScreenCommand = '\x1b[?1049h';
-// const leaveAltScreenCommand = '\x1b[?1049l';
-// process.stdout.write(enterAltScreenCommand);
-// process.on('exit', () => {
-// 	process.stdout.write(leaveAltScreenCommand);
-// });
+//const enterAltScreenCommand = '\x1b[?1049h';
+//const leaveAltScreenCommand = '\x1b[?1049l';
+//process.stdout.write(enterAltScreenCommand);
+//process.on('exit', () => {
+//process.stdout.write(leaveAltScreenCommand);
+//});
 
 render(
-	<>
-		<Provider store={store}>
-			<App commands={cli.input} />
-		</Provider>
-	</>,
+	<Provider store={store}>
+		<App commands={cli.input} />
+	</Provider>,
 );
